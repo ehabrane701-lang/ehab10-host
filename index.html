@@ -902,7 +902,7 @@
             const data = await res.json();
             if(!data.success) return;
 
-            document.getElementById('usedServers').innerHTML = `${data.stats.used}/${data.stats.total || 2}`;
+            document.getElementById('usedServers').innerHTML = `${data.stats.used}/${data.stats.total || 10}`;
             document.getElementById('expiryDays').innerHTML = `${data.stats.expiry || '--'} يوم`;
             const diskTotal = data.stats.disk_total || 512000;
             const diskUsed = data.stats.disk_used || 0;
