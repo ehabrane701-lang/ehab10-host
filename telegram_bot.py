@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-𝗘𝗛𝗔𝗕 - بوت التحكم الكامل
-طُوِّر بواسطة: ꪝ🇾🇪إأبـטּٱإڵيمـטּ🇾🇪ꪝ | @Y_20_20
+𝗘𝗛𝗔Б - بوت التحكم الكامل
+طُوِّر بواسطة: ꪝ🇾🇪إأبـტּٱإڵيمـטּ🇾🇪ꪝ | @Y_20_20
 """
 
 import os
@@ -16,11 +16,11 @@ from telegram.ext import (
 BOT_TOKEN = "7687262918:AAH8mBdHAALzhwZBh2HCe8DHu-oRqMEePg8"
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://ehab10-host.onrender.com")
 
-# إيدي الأدمن على تليجرام
+# إيدي الأدمن على تليجرام (له صلاحية مجانية كاملة)
 ADMIN_TELEGRAM_IDS = [1002670694]
 
 # معلومات المطور
-DEVELOPER_INFO = "🛠 طُوِّر بواسطة: *ꪝ🇾🇪إأبـטּٱإڵيمـטּ🇾🇪ꪝ*\n📬 تواصل: @Y_20_20"
+DEVELOPER_INFO = "🛠 طُوِّر بواسطة: *ꪝ🇾🇪إأبـტּٱإڵيمـטּ🇾🇪ꪝ*\n📬 تواصل: @Y_20_20"
 
 # ========== حالات المحادثة ==========
 (
@@ -53,7 +53,8 @@ def api_request(endpoint, method="GET", data=None, params=None, api_key=None):
 
 
 def is_admin_tg(update: Update) -> bool:
-    return update.effective_chat.id in ADMIN_TELEGRAM_IDS
+    user_id = update.effective_user.id if update.effective_user else 0
+    return user_id in ADMIN_TELEGRAM_IDS
 
 
 # ─────────────────────────────────────────────────
@@ -66,7 +67,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
 
     keyboard = []
 
-    if api_key:
+    if api_key or is_adm:
         keyboard.append([
             InlineKeyboardButton("📁 سيرفراتي", callback_data="my_servers"),
             InlineKeyboardButton("➕ إنشاء سيرفر", callback_data="create_server"),
@@ -76,7 +77,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
             InlineKeyboardButton("🚪 تسجيل خروج", callback_data="logout"),
         ])
     else:
-        keyboard.append([InlineKeyboardButton("🔑 ربط API Key", callback_data="enter_api")])
+        keyboard.append([InlineKeyboardButton("🔑 ربط اشتراك API Key", callback_data="enter_api")])
 
     if is_adm:
         pending_count = 0
@@ -89,16 +90,19 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
             InlineKeyboardButton(bell, callback_data="admin_notifications"),
         ])
 
-    keyboard.append([InlineKeyboardButton("💬 تواصل مع المطور @Y_20_20", url="https://t.me/Y_20_20")])
+    keyboard.append([InlineKeyboardButton("💬 تواصل للاشتراك مع المطور @Y_20_20", url="https://t.me/Y_20_20")])
 
     text = (
         "━━━━━━━━━━━━━━━━━━━━\n"
         "      𝗘𝗛𝗔𝗕 🚀\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
     )
-    if username:
+    if is_adm:
+        text += "👑 أهلاً بك يا أدمن (صلاحية مجانية مطلقة)\n"
+    elif username:
         text += f"👤 أهلاً، *{username}*!\n"
-    text += "✅ متصل بالنظام\n" if api_key else "⚠️ يجب ربط API Key أولاً\n"
+        
+    text += "✅ متصل بالنظام\n" if (api_key or is_adm) else "⚠️ يجب ربط اشتراكك أو مفتاح API أولاً\n"
     text += f"\n{DEVELOPER_INFO}"
 
     markup = InlineKeyboardMarkup(keyboard)
@@ -121,22 +125,29 @@ async def show_servers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     api_key = context.user_data.get("api_key")
-    if not api_key:
-        await query.edit_message_text("❌ يجب ربط API Key أولاً.")
+    is_adm = is_admin_tg(update)
+
+    if not api_key and not is_adm:
+        await query.edit_message_text("❌ يجب ربط اشتراكك أو API Key أولاً.")
         return
 
     result = api_request("/api/bot/servers", api_key=api_key)
     if not result or not result.get("success"):
-        await query.edit_message_text(
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "❌ فشل جلب السيرفرات\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "تحقق من صحة API Key.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]]),
-        )
-        return
+        # للأدمن، إذا لم يكن لديه api_key مسجل، نعرض رسالة مناسبة أو قائمة فارغة بدل الخطأ
+        if is_adm and not api_key:
+            servers = []
+        else:
+            await query.edit_message_text(
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "❌ فشل جلب السيرفرات\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "تحقق من صحة الاشتراك أو API Key.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]]),
+            )
+            return
+    else:
+        servers = result.get("servers", [])
 
-    servers = result.get("servers", [])
     if not servers:
         await query.edit_message_text(
             "━━━━━━━━━━━━━━━━━━━━\n"
@@ -153,20 +164,20 @@ async def show_servers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(f"📋 لديك *{len(servers)}* سيرفر:", parse_mode="Markdown")
 
     for srv in servers:
-        status_emoji = "🟢" if srv["status"] == "Running" else "⚫"
+        status_emoji = "🟢" if srv.get("status") == "Running" else "⚫"
         srv_type = srv.get("type", "Python")
         type_icon = "🐍" if srv_type == "Python" else "🟨"
 
         text = (
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"{status_emoji} *{srv['title']}*\n"
+            f"{status_emoji} *{srv.get('title', 'Server')}*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"{type_icon} النوع: `{srv_type}`\n"
-            f"📊 الحالة: `{srv['status']}`\n"
-            f"🔌 المنفذ: `{srv['port']}`\n"
-            f"⏱ وقت التشغيل: {srv['uptime']}"
+            f"📊 الحالة: `{srv.get('status', 'Unknown')}`\n"
+            f"🔌 المنفذ: `{srv.get('port', 'N/A')}`\n"
+            f"⏱ وقت التشغيل: {srv.get('uptime', 'N/A')}"
         )
-        folder = srv["folder"]
+        folder = srv.get("folder", "")
         keyboard = [
             [
                 InlineKeyboardButton("▶️ تشغيل", callback_data=f"srv_start|{folder}"),
@@ -196,7 +207,7 @@ async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if not is_admin_tg(update):
-        await query.edit_message_text("❌ غير مصرح لك بالدخول.")
+        await query.edit_message_text("❌ غير مصرح لك بالدخول (للأدمن فقط).")
         return
 
     api_key = context.user_data.get("api_key")
@@ -211,11 +222,11 @@ async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "  👑 لوحة إدارة 𝗘𝗛𝗔𝗕\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"👥 المستخدمين: *{len(users)}*\n"
-        f"🔔 طلبات معلقة: *{pending_count}*\n"
+        f"🔔 طلبات اشتراك معلقة: *{pending_count}*\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
     )
     for u in users[:10]:
-        text += f"• `{u['username']}` | {u.get('max_servers', 1)} سيرفر\n"
+        text += f"• `{u.get('username', 'User')}` | {u.get('max_servers', 1)} سيرفر\n"
     if len(users) > 10:
         text += f"... و {len(users) - 10} آخرين\n"
 
@@ -246,7 +257,7 @@ async def show_admin_notifications(update: Update, context: ContextTypes.DEFAULT
     result = api_request("/api/admin/pending", api_key=api_key)
 
     if not result or not result.get("success"):
-        await query.edit_message_text("❌ فشل جلب الإشعارات.")
+        await query.edit_message_text("❌ فشل جلب طلبات الاشتراكات.")
         return
 
     requests_list = result.get("requests", [])
@@ -254,7 +265,7 @@ async def show_admin_notifications(update: Update, context: ContextTypes.DEFAULT
     if not requests_list:
         await query.edit_message_text(
             "━━━━━━━━━━━━━━━━━━━━\n"
-            "🔕 لا توجد طلبات معلقة\n"
+            "🔕 لا توجد طلبات اشتراك معلقة\n"
             "━━━━━━━━━━━━━━━━━━━━",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]]),
         )
@@ -262,17 +273,17 @@ async def show_admin_notifications(update: Update, context: ContextTypes.DEFAULT
 
     await query.edit_message_text(
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔔 طلبات حسابات جديدة ({len(requests_list)})\n"
+        f"🔔 طلبات اشتراكات جديدة ({len(requests_list)})\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
     for req in requests_list:
         text = (
-            f"👤 المستخدم: `{req['username']}`\n"
+            f"👤 المستخدم: `{req.get('username', 'N/A')}`\n"
             f"📅 التاريخ: {req.get('created_at', '')[:19]}"
         )
         keyboard = [[
-            InlineKeyboardButton("✅ قبول", callback_data=f"approve|{req['username']}"),
-            InlineKeyboardButton("❌ رفض", callback_data=f"reject|{req['username']}"),
+            InlineKeyboardButton("✅ قبول", callback_data=f"approve|{req.get('username')}"),
+            InlineKeyboardButton("❌ رفض", callback_data=f"reject|{req.get('username')}"),
         ]]
         await query.message.reply_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -286,6 +297,11 @@ async def show_admin_notifications(update: Update, context: ContextTypes.DEFAULT
 #  /start
 # ─────────────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    is_adm = is_admin_tg(update)
+    
+    if is_adm:
+        context.user_data["is_admin"] = True
+
     api_key = context.user_data.get("api_key")
     if api_key:
         result = api_request("/api/bot/verify", method="POST", data={"api_key": api_key})
@@ -295,14 +311,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return ConversationHandler.END
         context.user_data.clear()
 
+    # إذا كان المستخدم أدمن، يمكنه الدخول مباشرة بدون اشتراك
+    if is_adm:
+        await show_main_menu(update, context)
+        return ConversationHandler.END
+
     keyboard = [
-        [InlineKeyboardButton("🔑 إدخال API Key", callback_data="enter_api")],
-        [InlineKeyboardButton("💬 تواصل مع المطور @Y_20_20", url="https://t.me/Y_20_20")],
+        [InlineKeyboardButton("🔑 إدخال API Key (تفعيل الاشتراك)", callback_data="enter_api")],
+        [InlineKeyboardButton("💬 تواصل للاشتراك مع المطور @Y_20_20", url="https://t.me/Y_20_20")],
     ]
     await update.message.reply_text(
         "━━━━━━━━━━━━━━━━━━━━\n"
         "      𝗘𝗛𝗔𝗕 🚀\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
+        "📌 نظام استضافة بوتات تيليجرام و Node.js\n\n"
         "للاشتراك والحصول على حساب:\n"
         "📬 تواصل مع المطور: @Y_20_20\n\n"
         f"{DEVELOPER_INFO}",
@@ -316,11 +338,11 @@ async def handle_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
     api_key = update.message.text.strip()
     result = api_request("/api/bot/verify", method="POST", data={"api_key": api_key})
     if not result or not result.get("success"):
-        keyboard = [[InlineKeyboardButton("💬 تواصل مع المطور", url="https://t.me/Y_20_20")]]
+        keyboard = [[InlineKeyboardButton("💬 تواصل مع المطور للاشتراك", url="https://t.me/Y_20_20")]]
         await update.message.reply_text(
-            "❌ *مفتاح API غير صالح!*\n\n"
-            "تحقق من الكود وحاول مرة أخرى\n"
-            "أو تواصل مع المطور: @Y_20_20",
+            "❌ *مفتاح الاشتراك أو API غير صالح!*\n\n"
+            "تأكد من الكود وحاول مرة أخرى\n"
+            "أو تواصل مع المطور للحصول على اشتراك: @Y_20_20",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
@@ -331,8 +353,8 @@ async def handle_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["is_admin"] = result.get("is_admin", False)
 
     await update.message.reply_text(
-        f"✅ *تم الربط بنجاح!*\n"
-        f"👤 مرحباً *{result.get('username')}*!",
+        f"✅ *تم تفعيل الاشتراك والربط بنجاح!*\n"
+        f"👤 مرحباً *{result.get('username', '')}*!",
         parse_mode="Markdown",
     )
     await show_main_menu(update, context)
@@ -365,7 +387,7 @@ async def receive_server_type(update: Update, context: ContextTypes.DEFAULT_TYPE
     name = context.user_data.get("pending_server_name", "Server")
 
     result = api_request("/api/bot/create_server", method="POST", data={
-        "api_key": context.user_data["api_key"],
+        "api_key": context.user_data.get("api_key", ""),
         "name": name,
         "server_type": srv_type,
         "plan": "free",
@@ -384,8 +406,9 @@ async def receive_server_type(update: Update, context: ContextTypes.DEFAULT_TYPE
             parse_mode="Markdown",
         )
     else:
+        err_msg = result.get("message", "خطأ غير معروف") if result else "خطأ غير معروف"
         await query.edit_message_text(
-            f"❌ *فشل الإنشاء!*\n{result.get('message', 'خطأ غير معروف')}",
+            f"❌ *فشل الإنشاء!*\n{err_msg}",
             parse_mode="Markdown",
         )
 
@@ -455,7 +478,8 @@ async def admin_delete_user_confirm(update: Update, context: ContextTypes.DEFAUL
     if result and result.get("success"):
         await update.message.reply_text(f"✅ تم حذف المستخدم `{username}`", parse_mode="Markdown")
     else:
-        await update.message.reply_text(f"❌ فشل: {result.get('message', 'خطأ')}")
+        err_msg = result.get("message", "خطأ") if result else "خطأ"
+        await update.message.reply_text(f"❌ فشل: {err_msg}")
     await show_main_menu(update, context)
     return ConversationHandler.END
 
@@ -463,6 +487,9 @@ async def admin_delete_user_confirm(update: Update, context: ContextTypes.DEFAUL
 async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if not is_admin_tg(update):
+        await query.edit_message_text("❌ غير مصرح.")
+        return
     metrics = api_request("/api/system/metrics")
     cpu = metrics.get("cpu", "?") if metrics else "?"
     ram = metrics.get("memory", "?") if metrics else "?"
@@ -494,14 +521,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data in ("enter_api", "change_api"):
         context.user_data.pop("api_key", None)
         await query.edit_message_text(
-            "🔑 *أدخل API Key الخاص بك:*\n\n"
-            "يمكنك الحصول عليه من لوحة التحكم في الموقع.",
+            "🔑 *أدخل مفتاح الاشتراك أو API Key الخاص بك:*\n\n"
+            "يمكنك الحصول عليه من لوحة التحكم بالموقع أو التواصل مع المطور @Y_20_20.",
             parse_mode="Markdown",
         )
         return WAITING_FOR_API_KEY
     elif data == "logout":
         context.user_data.clear()
-        await query.edit_message_text("🚪 تم تسجيل الخروج.\nاستخدم /start للدخول مجدداً.")
+        await query.edit_message_text("🚪 تم تسجيل الخروج بنجاح.\nاستخدم /start للدخول مجدداً.")
     elif data == "create_server":
         await query.edit_message_text(
             "➕ *إنشاء سيرفر جديد*\n\n📝 أرسل اسم السيرفر:",
@@ -530,7 +557,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if result and result.get("success"):
                 await query.answer(result.get("message", "✅ تم")[:200], show_alert=True)
             else:
-                await query.answer(f"❌ {result.get('message', 'فشل') if result else 'خطأ'}"[:200], show_alert=True)
+                err_text = result.get('message', 'فشل') if result else 'خطأ'
+                await query.answer(f"❌ {err_text}"[:200], show_alert=True)
             await show_servers_list(update, context)
 
         elif cmd == "console":
@@ -543,7 +571,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = api_request("/api/bot/install", method="POST", data={
                 "api_key": api_key, "folder": value,
             })
-            msg = result.get("message", "✅ جاري التثبيت") if result and result.get("success") else f"❌ {result.get('message','فشل') if result else 'خطأ'}"
+            if result and result.get("success"):
+                msg = result.get("message", "✅ جاري التثبيت")
+            else:
+                msg = f"❌ {result.get('message', 'فشل') if result else 'خطأ'}"
             await query.edit_message_text(
                 f"📦 *تثبيت المكتبات*\n\n{msg}\n\nتابع الكونسول للتفاصيل.",
                 parse_mode="Markdown",
@@ -557,7 +588,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = api_request("/api/admin/approve", method="POST", data={
                 "api_key": api_key, "username": value,
             })
-            msg = f"✅ تم قبول حساب {value}" if result and result.get("success") else "❌ فشل القبول"
+            msg = f"✅ تم قبول اشتراك {value}" if result and result.get("success") else "❌ فشل القبول"
             await query.answer(msg, show_alert=True)
             await show_admin_notifications(update, context)
 
