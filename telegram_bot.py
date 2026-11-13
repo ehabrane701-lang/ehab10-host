@@ -14,7 +14,7 @@ from telegram.ext import (
 
 # ========== إعدادات البوت ==========
 BOT_TOKEN = "7687262918:AAH8mBdHAALzhwZBh2HCe8DHu-oRqMEePg8"
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://ehab10-host.onrender.com")
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://ehab10-host-1.onrender.com")
 
 # إيدي الأدمن على تليجرام (له صلاحية مجانية كاملة)
 ADMIN_TELEGRAM_IDS = [1002670694]
