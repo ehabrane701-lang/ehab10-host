@@ -107,12 +107,16 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
 
     markup = InlineKeyboardMarkup(keyboard)
     try:
-        if edit and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
+        query = update.callback_query
+        if edit and query:
+            if query.message.text != text:
+                await query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
+            else:
+                await query.answer()
         elif update.message:
             await update.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
-        else:
-            await update.callback_query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
+        elif query:
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
     except Exception:
         pass
 
@@ -133,7 +137,6 @@ async def show_servers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     result = api_request("/api/bot/servers", api_key=api_key)
     if not result or not result.get("success"):
-        # للأدمن، إذا لم يكن لديه api_key مسجل، نعرض رسالة مناسبة أو قائمة فارغة بدل الخطأ
         if is_adm and not api_key:
             servers = []
         else:
@@ -279,7 +282,7 @@ async def show_admin_notifications(update: Update, context: ContextTypes.DEFAULT
     for req in requests_list:
         text = (
             f"👤 المستخدم: `{req.get('username', 'N/A')}`\n"
-            f"📅 التاريخ: {req.get('created_at', '')[:19]}"
+            f"📅 التاريخ: {str(req.get('created_at', ''))[:19]}"
         )
         keyboard = [[
             InlineKeyboardButton("✅ قبول", callback_data=f"approve|{req.get('username')}"),
@@ -311,7 +314,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return ConversationHandler.END
         context.user_data.clear()
 
-    # إذا كان المستخدم أدمن، يمكنه الدخول مباشرة بدون اشتراك
     if is_adm:
         await show_main_menu(update, context)
         return ConversationHandler.END
@@ -362,10 +364,24 @@ async def handle_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ─────────────────────────────────────────────────
-#  إنشاء سيرفر
+#  إنشاء سيرفر (معالجة صحيحة وسريعة)
 # ─────────────────────────────────────────────────
+async def start_create_server(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "➕ *إنشاء سيرفر جديد*\n\n📝 أرسل اسم السيرفر الآن:",
+        parse_mode="Markdown",
+    )
+    return WAITING_FOR_NEW_SERVER_NAME
+
+
 async def receive_server_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
+    if not name:
+        await update.message.reply_text("❌ اسم السيرفر لا يمكن أن يكون فارغاً. أرسل اسم السيرفر من جديد:")
+        return WAITING_FOR_NEW_SERVER_NAME
+        
     context.user_data["pending_server_name"] = name
     keyboard = [[
         InlineKeyboardButton("🐍 Python", callback_data="server_type_python"),
@@ -385,9 +401,10 @@ async def receive_server_type(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     srv_type = "Python" if query.data == "server_type_python" else "Node.js"
     name = context.user_data.get("pending_server_name", "Server")
+    api_key = context.user_data.get("api_key", "")
 
     result = api_request("/api/bot/create_server", method="POST", data={
-        "api_key": context.user_data.get("api_key", ""),
+        "api_key": api_key,
         "name": name,
         "server_type": srv_type,
         "plan": "free",
@@ -513,7 +530,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
 
-    # أزرار بدون "|"
     if data == "main_menu":
         await show_main_menu(update, context, edit=True)
     elif data == "my_servers":
@@ -530,11 +546,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
         await query.edit_message_text("🚪 تم تسجيل الخروج بنجاح.\nاستخدم /start للدخول مجدداً.")
     elif data == "create_server":
-        await query.edit_message_text(
-            "➕ *إنشاء سيرفر جديد*\n\n📝 أرسل اسم السيرفر:",
-            parse_mode="Markdown",
-        )
-        return WAITING_FOR_NEW_SERVER_NAME
+        return await start_create_server(update, context)
     elif data == "admin_panel":
         await show_admin_panel(update, context)
     elif data == "admin_notifications":
@@ -544,7 +556,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "admin_stats":
         await admin_stats(update, context)
 
-    # أزرار مع "|" → cmd|value
     elif "|" in data:
         cmd, value = data.split("|", 1)
         api_key = context.user_data.get("api_key")
