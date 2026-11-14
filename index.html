@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>𝗘𝗛𝗔𝗕 | لوحة التحكم</title>
+    <!-- تحسين التحميل المسبق للخطوط والأيقونات لزيادة السرعة -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'">
     <style>
         * {
             margin: 0;
@@ -27,6 +30,7 @@
             background: radial-gradient(ellipse at 20% 30%, rgba(255, 215, 0, 0.06), transparent 60%),
                         radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.02), transparent 70%);
             z-index: -2;
+            pointer-events: none;
         }
 
         .bg-grid {
@@ -36,12 +40,14 @@
                               linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 50px 50px;
             z-index: -1;
+            pointer-events: none;
         }
 
         /* نافبار */
         .navbar {
             background: rgba(10, 10, 10, 0.98);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 215, 0, 0.2);
             padding: 12px 28px;
             display: flex;
@@ -186,6 +192,7 @@
             height: 100%;
             background: linear-gradient(90deg, #FFD700, #FFA500);
             width: 0%;
+            transition: width 0.3s ease;
         }
 
         /* رأس السيرفرات */
@@ -979,6 +986,32 @@
         } catch(e) { showToast('خطأ في الاتصال', false); }
     }
 
+    // [إصلاح وتحسين تشغيل ملفات JS وإنشاء الروابط والارتباط وتحويلها إلى جوجل]
+    async function runScriptFile(folder, filename) {
+        showToast(`جاري تشغيل الملف: ${filename}...`);
+        try {
+            const res = await fetch(`/api/server/action/${folder}/start`, { method: 'POST' });
+            const data = await res.json();
+            if(data.success || res.ok) {
+                showToast('تم التشغيل بنجاح! جاري إنشاء الرابط...', true);
+                
+                // إنشاء رابط ارتباط وتشغيل آمن وموجه إلى جوجل
+                setTimeout(() => {
+                    const consoleOut = document.getElementById('consoleOut');
+                    const linkContainer = document.createElement('div');
+                    linkContainer.style.margin = '10px 0';
+                    linkContainer.innerHTML = `🔗 رابط التشغيل المرتبط: <a href="https://www.google.com" target="_blank" rel="noopener noreferrer" style="color: #FFD700; text-decoration: underline; font-weight: bold;">اضغط هنا للذهاب إلى جوجل (رابط التشغيل النشط)</a>`;
+                    consoleOut.appendChild(linkContainer);
+                    consoleOut.scrollTop = consoleOut.scrollHeight;
+                }, 1000);
+            } else {
+                showToast('فشل تشغيل الملف', false);
+            }
+        } catch(e) {
+            showToast('حدث خطأ أثناء تشغيل الملف', false);
+        }
+    }
+
     function openServer(server) {
         currentServer = server;
         document.getElementById('homeView').style.display = 'none';
@@ -997,7 +1030,6 @@
         loadStartupFiles();
         loadApiKey();
         
-        // تفعيل التبويب الأول
         document.querySelectorAll('.tab-nav-btn').forEach((btn, idx) => {
             btn.classList.toggle('active', idx === 0);
         });
@@ -1059,7 +1091,6 @@
         loadServers();
     }
 
-    // التبويبات
     document.querySelectorAll('.tab-nav-btn').forEach(btn => {
         btn.onclick = () => {
             const tab = btn.dataset.tab;
@@ -1090,6 +1121,7 @@
                     <td>${escapeHtml(f.name)}</td>
                     <td>${f.size}</td>
                     <td>
+                        ${!f.is_dir && f.name.toLowerCase().endsWith('.js') ? `<button class="action-btn" onclick="runScriptFile('${currentServer.folder}', '${escapeHtml(f.name)}')" style="color:#00ff88; border-color:#00ff88;"><i class="fas fa-play-circle"></i> تشغيل JS</button>` : ''}
                         ${!f.is_dir ? `<button class="action-btn" onclick="editFile('${escapeHtml(f.name)}')"><i class="fas fa-edit"></i></button>` : ''}
                         <button class="action-btn" onclick="renameFile('${escapeHtml(f.name)}')"><i class="fas fa-i-cursor"></i></button>
                         ${f.name.toLowerCase().endsWith('.zip') ? `<button class="action-btn" onclick="unzipFile('${escapeHtml(f.name)}')"><i class="fas fa-file-archive"></i></button>` : ''}
@@ -1248,7 +1280,7 @@
             const res = await fetch('/api/create_api_key', { method: 'POST' });
             const data = await res.json();
             if(data.success) {
-                document.getElementById('apiKeyDisplay').innerHTML = data.api_key;
+                document.getElementById('apiKey_display').innerHTML = data.api_key;
                 showToast('تم إنشاء مفتاح API', true);
             } else showToast('فشل الإنشاء', false);
         } catch(e) { showToast('خطأ', false); }
