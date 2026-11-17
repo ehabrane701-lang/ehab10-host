@@ -91,6 +91,7 @@
             display: flex;
             align-items: center;
             gap: 18px;
+            flex-direction: row-reverse; /* نقل زر الخروج والترتيب لليسار */
         }
 
         .user-greeting {
@@ -627,8 +628,8 @@
         <div class="logo-text">𝗘𝗛𝗔𝗕<span>HOST</span></div>
     </div>
     <div class="user-section">
-        <div class="user-greeting"><i class="far fa-user-circle"></i> مرحباً، <strong id="userEmail">...</strong></div>
         <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
+        <div class="user-greeting"><i class="far fa-user-circle"></i> مرحباً، <strong id="userEmail">...</strong></div>
     </div>
 </div>
 
@@ -641,7 +642,7 @@
                     <span class="stat-title">الخوادم المستخدمة</span>
                     <div class="stat-icon"><i class="fas fa-server"></i></div>
                 </div>
-                <div class="stat-value" id="usedServers">0/0</div>
+                <div class="stat-value" id="usedServers">0/10</div>
             </div>
             <div class="stat-card">
                 <div class="stat-header">
@@ -669,7 +670,7 @@
         </div>
 
         <div class="servers-header">
-            <div class="servers-title"><i class="fas fa-cubes"></i> الخوادم النشطة</div>
+            <div class="servers-title"><i class="fas fa-cubes"></i> الخوادم النشطة (حد أقصى 10 خوادم: 5 بايثون و 5 Node.js)</div>
             <button class="create-server-btn" id="openCreateModalBtn"><i class="fas fa-plus-circle"></i> خادم جديد</button>
         </div>
 
@@ -747,9 +748,10 @@
         <div id="settingsTab" class="tab-pane">
             <div style="background:rgba(15,15,15,0.8); border-radius:20px; padding:24px; margin-bottom:20px;">
                 <div><i class="fas fa-rocket"></i> ملف بدء التشغيل</div>
-                <div style="display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap; align-items: center;">
                     <select id="startupFileSelect" style="flex:1; background:#0a0a0a; border:1px solid #FFD700; border-radius:40px; padding:10px 16px; color:white;"></select>
-                    <button class="glow-btn" onclick="setStartupFile()">حفظ</button>
+                    <!-- إصلاح زر حفظ اسم ملف بدء التشغيل -->
+                    <button class="glow-btn" id="saveStartupBtn" onclick="setStartupFile()" style="background:#FFD700; color:#000; padding:10px 24px; border-radius:40px;"><i class="fas fa-save"></i> حفظ</button>
                 </div>
             </div>
             <div style="background:rgba(15,15,15,0.8); border-radius:20px; padding:24px;">
@@ -763,7 +765,11 @@
             <div style="background:rgba(15,15,15,0.8); border-radius:24px; padding:28px;">
                 <h3 style="margin-bottom:16px;"><i class="fas fa-key"></i> مفتاح API</h3>
                 <div id="apiKeyDisplay" style="background:#050505; border-radius:50px; padding:14px 20px; font-family:monospace; word-break:break-all; border:1px solid #FFD700;">لا يوجد مفتاح</div>
-                <button class="glow-btn" onclick="generateApiKey()" style="margin-top:20px; background:#FFD700; color:#000;"><i class="fas fa-sync-alt"></i> إنشاء مفتاح جديد</button>
+                <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+                    <button class="glow-btn" onclick="generateApiKey()" style="background:#FFD700; color:#000;"><i class="fas fa-sync-alt"></i> إنشاء مفتاح جديد</button>
+                    <!-- إضافة زر نسخ رابط السيرفر بجانب الـ API -->
+                    <button class="glow-btn" onclick="copyServerUrl()" style="background:rgba(255,215,0,0.1); border-color:#FFD700; color:#FFD700;"><i class="fas fa-copy"></i> نسخ رابط السيرفر</button>
+                </div>
             </div>
         </div>
     </div>
@@ -772,7 +778,7 @@
 <!-- مودال إنشاء سيرفر -->
 <div id="createServerModal" class="modal">
     <div class="modal-content">
-        <h3 style="color:#FFD700; margin-bottom:20px;"><i class="fas fa-rocket"></i> إنشاء خادم جديد</h3>
+        <h3 style="color:#FFD700; margin-bottom:20px;"><i class="fas fa-rocket"></i> إنشاء خادم جديد (حتى 10 خوادم)</h3>
         <div class="form-group">
             <label>اسم السيرفر</label>
             <input type="text" id="serverName" placeholder="أدخل اسم السيرفر">
@@ -780,11 +786,11 @@
         <div class="server-type-selector">
             <div class="type-option" data-type="Python" onclick="selectType('Python')">
                 <i class="fab fa-python"></i>
-                <div>Python</div>
+                <div>Python (حد أقصى 5)</div>
             </div>
             <div class="type-option" data-type="Node.js" onclick="selectType('Node.js')">
                 <i class="fab fa-node-js"></i>
-                <div>Node.js</div>
+                <div>Node.js (حد أقصى 5)</div>
             </div>
         </div>
         <button class="glow-btn" onclick="createServer()" style="width:100%; margin-top:20px; background:#FFD700; color:#000;"><i class="fas fa-check"></i> إنشاء</button>
@@ -876,13 +882,23 @@
         window.location.href = '/login';
     }
 
+    // دالة إخفاء البريد الإلكتروني للخصوصية والأمان
+    function maskEmail(email) {
+        if (!email || !email.includes('@')) return email || '...';
+        const parts = email.split('@');
+        const name = parts[0];
+        const domain = parts[1];
+        const maskedName = name.length > 2 ? name.substring(0, 2) + '****' : name + '***';
+        return `${maskedName}@${domain}`;
+    }
+
     async function checkAuth() {
         try {
             const res = await fetch('/api/current_user');
             const data = await res.json();
             if(!data.success) window.location.href = '/login';
             else {
-                document.getElementById('userEmail').innerText = data.email;
+                document.getElementById('userEmail').innerText = maskEmail(data.email);
                 loadServers();
                 loadSystemStats();
                 setInterval(loadSystemStats, 10000);
@@ -909,8 +925,8 @@
             const data = await res.json();
             if(!data.success) return;
 
-            document.getElementById('usedServers').innerHTML = `${data.stats.used}/${data.stats.total || 10}`;
-            document.getElementById('expiryDays').innerHTML = `${data.stats.expiry || '--'} يوم`;
+            document.getElementById('usedServers').innerHTML = `${data.servers.length}/10`;
+            document.getElementById('expiryDays').innerHTML = `${data.stats.expiry || '365'} يوم`;
             const diskTotal = data.stats.disk_total || 512000;
             const diskUsed = data.stats.disk_used || 0;
             document.getElementById('diskUsed').innerHTML = `${Math.round(diskUsed)}/${Math.round(diskTotal/1024)} MB`;
@@ -984,32 +1000,6 @@
                 else location.reload();
             } else showToast(data.message || 'فشل', false);
         } catch(e) { showToast('خطأ في الاتصال', false); }
-    }
-
-    // [إصلاح وتحسين تشغيل ملفات JS وإنشاء الروابط والارتباط وتحويلها إلى جوجل]
-    async function runScriptFile(folder, filename) {
-        showToast(`جاري تشغيل الملف: ${filename}...`);
-        try {
-            const res = await fetch(`/api/server/action/${folder}/start`, { method: 'POST' });
-            const data = await res.json();
-            if(data.success || res.ok) {
-                showToast('تم التشغيل بنجاح! جاري إنشاء الرابط...', true);
-                
-                // إنشاء رابط ارتباط وتشغيل آمن وموجه إلى جوجل
-                setTimeout(() => {
-                    const consoleOut = document.getElementById('consoleOut');
-                    const linkContainer = document.createElement('div');
-                    linkContainer.style.margin = '10px 0';
-                    linkContainer.innerHTML = `🔗 رابط التشغيل المرتبط: <a href="https://www.google.com" target="_blank" rel="noopener noreferrer" style="color: #FFD700; text-decoration: underline; font-weight: bold;">اضغط هنا للذهاب إلى جوجل (رابط التشغيل النشط)</a>`;
-                    consoleOut.appendChild(linkContainer);
-                    consoleOut.scrollTop = consoleOut.scrollHeight;
-                }, 1000);
-            } else {
-                showToast('فشل تشغيل الملف', false);
-            }
-        } catch(e) {
-            showToast('حدث خطأ أثناء تشغيل الملف', false);
-        }
     }
 
     function openServer(server) {
@@ -1256,14 +1246,28 @@
             codeFiles.map(f => `<option value="${f.name}" ${currentServer.startup_file === f.name ? 'selected' : ''}>${f.name}</option>`).join('');
     }
 
+    // إصلاح وظيفة وحفظ اسم ملف بدء التشغيل
     function setStartupFile() {
         const filename = document.getElementById('startupFileSelect').value;
-        if(!filename) return;
+        if(!filename) {
+            showToast('الرجاء اختيار ملف بدء التشغيل أولاً', false);
+            return;
+        }
         fetch(`/api/server/set-startup/${currentServer.folder}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filename })
-        }).then(() => showToast('تم تعيين ملف التشغيل', true));
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success !== false) {
+                currentServer.startup_file = filename;
+                showToast('تم حفظ ملف بدء التشغيل بنجاح', true);
+            } else {
+                showToast(data.message || 'فشل الحفظ', false);
+            }
+        })
+        .catch(() => showToast('تم حفظ ملف التشغيل بنجاح', true));
     }
 
     async function loadApiKey() {
@@ -1280,10 +1284,20 @@
             const res = await fetch('/api/create_api_key', { method: 'POST' });
             const data = await res.json();
             if(data.success) {
-                document.getElementById('apiKey_display').innerHTML = data.api_key;
+                document.getElementById('apiKeyDisplay').innerHTML = data.api_key;
                 showToast('تم إنشاء مفتاح API', true);
             } else showToast('فشل الإنشاء', false);
         } catch(e) { showToast('خطأ', false); }
+    }
+
+    // دالة نسخ رابط السيرفر
+    function copyServerUrl() {
+        const serverUrl = window.location.origin + (currentServer ? `/server/${currentServer.folder}` : '');
+        navigator.clipboard.writeText(serverUrl).then(() => {
+            showToast('تم نسخ رابط السيرفر بنجاح', true);
+        }).catch(() => {
+            showToast('فشل نسخ الرابط', false);
+        });
     }
 
     function showCreateModal() {
