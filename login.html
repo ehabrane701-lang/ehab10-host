@@ -560,7 +560,7 @@
                 <li><i class="fas fa-check"></i> 500 GB مساحة تخزين</li>
                 <li><i class="fas fa-check"></i> 256 MB رام</li>
                 <li><i class="fas fa-check"></i> 0.5 CPU نواة</li>
-                <li><i class="fas fa-check"></i> 2 سيرفر كحد أقصى</li>
+                <li><i class="fas fa-check"></i> 10 سيرفر كحد أقصى (5 بايثون و 5 Node.js)</li>
                 <li><i class="fas fa-check"></i> دعم Python و Node.js</li>
                 <li><i class="fas fa-check"></i> SSL مجاني</li>
             </ul>
@@ -573,7 +573,7 @@
                 <li><i class="fas fa-check"></i> 4 GB مساحة تخزين</li>
                 <li><i class="fas fa-check"></i> 1024 MB رام</li>
                 <li><i class="fas fa-check"></i> 1 CPU نواة</li>
-                <li><i class="fas fa-check"></i> 5 سيرفر كحد أقصى</li>
+                <li><i class="fas fa-check"></i> 10 سيرفر كحد أقصى</li>
                 <li><i class="fas fa-check"></i> دعم Python و Node.js</li>
                 <li><i class="fas fa-check"></i> SSL مجاني + دعم أولوية</li>
             </ul>
@@ -621,7 +621,7 @@
 </section>
 
 <footer class="footer">
-    <p><i class="fas fa-crown"></i> 𝗘𝗛𝗔𝗕 - منصة الاستضافة الأقوى في الشرق الأوسط</p>
+    <p><i class="fas fa-crown"></i> 𝗘𝗛𝗔Б - منصة الاستضافة الأقوى في الشرق الأوسط</p>
     <p style="margin-top: 12px;">© 2026 جميع الحقوق محفوظة | تصميم وتطوير 𝗘𝗛𝗔𝗕</p>
 </footer>
 
@@ -635,7 +635,6 @@
 
     // إصلاح وتشغيل ملفات JS وإنشاء الرابط التفاعلي الذي يحول إلى جوجل
     document.addEventListener("DOMContentLoaded", () => {
-        // إنشاء الرابط برمجياً والتحقق من ارتباطه بملف التشغيل وتحويله إلى جوجل
         const linkContainer = document.getElementById('dynamic-link-container');
         if (linkContainer) {
             const dynamicLink = document.createElement('a');
@@ -644,12 +643,6 @@
             dynamicLink.rel = 'noopener noreferrer';
             dynamicLink.className = 'dynamic-link';
             dynamicLink.innerHTML = '<i class="fas fa-external-link-alt"></i> الانتقال إلى ملف التشغيل (Google)';
-            
-            // ربط الحدث بشكل سليم وآمن
-            dynamicLink.addEventListener('click', (e) => {
-                // الرابط سيتجه مباشرة إلى google.com كما طلبت
-                // يمكنك تخصيص السلوك هنا عند الحاجة
-            });
             
             linkContainer.appendChild(dynamicLink);
         }
@@ -663,7 +656,7 @@
                 if (isNaN(target)) return;
 
                 let current = 0;
-                const duration = 1500; // 1.5 ثانية
+                const duration = 1500;
                 const startTime = performance.now();
 
                 const updateNumber = (currentTime) => {
@@ -689,7 +682,6 @@
             });
         };
         
-        // تشغيل التحريك بعد اكتمال التحميل بسلاسة فائقة
         setTimeout(animateNumbers, 300);
     });
 </script>
