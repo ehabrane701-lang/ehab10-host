@@ -286,7 +286,7 @@
         .feature-icon {
             width: 70px;
             height: 70px;
-            background: linear-gradient(145deg, #FFD70020, #FFA50010);
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.12), rgba(255, 165, 0, 0.06));
             border-radius: 20px;
             display: flex;
             align-items: center;
@@ -558,19 +558,19 @@
 <section class="stats-section">
     <div class="stats-grid">
         <div>
-            <div class="stat-number">500+</div>
+            <div class="stat-number" data-target="500">0+</div>
             <div class="stat-label">مستخدم نشط</div>
         </div>
         <div>
-            <div class="stat-number">1000+</div>
+            <div class="stat-number" data-target="1000">0+</div>
             <div class="stat-label">سيرفر مستضاف</div>
         </div>
         <div>
-            <div class="stat-number">99.9%</div>
+            <div class="stat-number" data-target="99.9">0%</div>
             <div class="stat-label">وقت تشغيل</div>
         </div>
         <div>
-            <div class="stat-number">24/7</div>
+            <div class="stat-number" data-target="24">0/7</div>
             <div class="stat-label">دعم فني</div>
         </div>
     </div>
@@ -583,32 +583,49 @@
 
 <script>
     function scrollToFeatures() {
-        document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        const featuresEl = document.getElementById('features');
+        if (featuresEl) {
+            featuresEl.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
-    // تحديث إحصائيات متحركة
-    const stats = document.querySelectorAll('.stat-number');
-    const animateNumbers = () => {
-        stats.forEach(stat => {
-            const target = parseInt(stat.innerText);
-            let current = 0;
-            const increment = target / 50;
-            const updateNumber = () => {
-                if (current < target) {
-                    current += increment;
-                    stat.innerText = Math.floor(current) + (stat.innerText.includes('+') ? '+' : '');
-                    requestAnimationFrame(updateNumber);
-                } else {
-                    stat.innerText = target + (stat.innerText.includes('+') ? '+' : '');
-                }
-            };
-            updateNumber();
-        });
-    };
-    
-    // تشغيل المؤثرات عند التحميل
-    window.addEventListener('load', () => {
-        setTimeout(animateNumbers, 500);
+    // تحديث إحصائيات متحركة بشكل آمن
+    document.addEventListener("DOMContentLoaded", () => {
+        const stats = document.querySelectorAll('.stat-number');
+        const animateNumbers = () => {
+            stats.forEach(stat => {
+                const targetText = stat.getAttribute('data-target') || stat.innerText;
+                const target = parseFloat(targetText);
+                if (isNaN(target)) return;
+
+                let current = 0;
+                const duration = 1500;
+                const startTime = performance.now();
+
+                const updateNumber = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    current = progress * target;
+                    
+                    if (target % 1 !== 0) {
+                        stat.innerText = current.toFixed(1) + (stat.innerText.includes('%') ? '%' : '');
+                    } else {
+                        stat.innerText = Math.floor(current) + (stat.innerText.includes('+') ? '+' : (stat.innerText.includes('/') ? '/7' : ''));
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateNumber);
+                    } else {
+                        stat.innerText = targetText + (stat.innerText.includes('%') ? '%' : (stat.innerText.includes('+') ? '+' : (stat.innerText.includes('/') ? '/7' : '')));
+                    }
+                };
+
+                requestAnimationFrame(updateNumber);
+            });
+        };
+        
+        setTimeout(animateNumbers, 300);
     });
 </script>
 </body>
